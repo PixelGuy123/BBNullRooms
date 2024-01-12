@@ -6,6 +6,7 @@ using System.Reflection.Emit;
 namespace BBNullableRooms.Plugin
 {
 	[BepInPlugin(ModInfo.GUID, ModInfo.Name, ModInfo.Version)]
+	[BepInDependency("pixelguy.pixelmodding.baldiplus.bbgenfixes")] // Depends on the Mystery room fix
 	public class BasePlugin : BaseUnityPlugin
 	{
 		void Awake()
@@ -35,12 +36,11 @@ namespace BBNullableRooms.Plugin
 		[HarmonyTranspiler]
 		private static IEnumerable<CodeInstruction> AddingNulls(IEnumerable<CodeInstruction> instructions) =>
 			new CodeMatcher(instructions)
-			.MatchForward(true, // Why did I needed true? Idk, but it works
-				new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(LevelBuilder), "rooms")),
-				new CodeMatch(OpCodes.Callvirt, AccessTools.PropertyGetter(typeof(List<RoomController>), "Count")),
-				new CodeMatch(OpCodes.Add),
-				new CodeMatch(OpCodes.Stfld, name:"<roomCount>5__44")
-				) // Goes to a specific line
+			.MatchForward(false,
+				new CodeMatch(OpCodes.Stfld, name: "<roomCount>"),
+				new CodeMatch(OpCodes.Ldloc_2),
+				new CodeMatch(OpCodes.Ldc_I4_1),
+				new CodeMatch(OpCodes.Call, AccessTools.Method("LevelBuilder:UpdatePotentialRoomSpawns"))) // Goes to this specific line
 			.Insert(Transpilers.EmitDelegate(() => i.controlledRNG.NextDouble() > 0.6d ? 0 : 1), // Another mod will fix the Mystery room issue...
 			new CodeInstruction(OpCodes.Add)) // This Add to add to the variable duhs
 			.InstructionEnumeration();
